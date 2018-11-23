@@ -1,22 +1,20 @@
-// Building your Test Images
-    stage('BUILD') {
-      parallel {
-        stage('Express Image') {
-          steps {
-            sh 'docker build -f express-image/Dockerfile \
-            -t nodeapp-dev:trunk .'
-          }
+pipeline {
+    agent any
+        stages {
+            stage('Build') {
+                steps {
+                    echo 'This is the Build Stage'
+                }
+            }
+            stage('Test') {
+                steps {
+                    echo 'This is the Testing Stage'
+                }
+            }
+            stage('Deploy') {
+                steps {
+                    echo 'This is the Deploy Stage'
+                }
+            }
         }
-        stage('Test-Unit Image') {
-          steps {
-            sh 'docker build -f test-image/Dockerfile \
-            -t test-image:latest .'
-          }
-        }
-      }
-      post {
-        failure {
-            echo 'This build has failed. See logs for details.'
-        }
-      }
     }
