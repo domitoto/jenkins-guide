@@ -1,22 +1,16 @@
-pipeline {
-    environment {
-      DOCKER = credentials('docker-hub')
-    }
-  agent any
-  stages {
 // Building your Test Images
     stage('BUILD') {
       parallel {
         stage('Express Image') {
           steps {
-            docker build -f express-image/Dockerfile \
-            -t nodeapp-dev:trunk .
+            sh 'docker build -f express-image/Dockerfile \
+            -t nodeapp-dev:trunk .'
           }
         }
         stage('Test-Unit Image') {
           steps {
-            docker build -f test-image/Dockerfile \
-            -t test-image:latest .
+            sh 'docker build -f test-image/Dockerfile \
+            -t test-image:latest .'
           }
         }
       }
@@ -26,76 +20,3 @@ pipeline {
         }
       }
     }
-// Performing Software Tests
-    stage('TEST') {
-      parallel {
-        stage('Mocha Tests') {
-          steps {
-            docker run --name nodeapp-dev --network="bridge" -d \
-            -p 9000:9000 nodeapp-dev:trunk
-            docker run --name test-image -v $PWD:/JUnit --network="bridge" \
-            --link=nodeapp-dev -d -p 9001:9000 \
-            test-image:latest
-          }
-        }
-        stage('Quality Tests') {
-          steps {
-            docker login --username $DOCKER_USR --password $DOCKER_PSW
-            docker tag nodeapp-dev:trunk domitoto/nodeapp-dev:latest
-            docker push domitoto/nodeapp-dev:latest
-          }
-        }
-      }
-      post {
-        success {
-            echo 'Build succeeded.'
-        }
-        unstable {
-            echo 'This build returned an unstable status.'
-        }
-        failure {
-            echo 'This build has failed. See logs for details.'
-        }
-      }
-    }
-// Deploying your Software
-    stage('DEPLOY') {
-          when {
-           branch 'master'  //only run these steps on the master branch
-          }
-            steps {
-                    retry(3) {
-                        timeout(time:10, unit: 'MINUTES') {
-                            docker tag nodeapp-dev:trunk domitoto/nodeapp-prod:latest
-                            docker push domitoto/nodeapp-prod:latest
-                            docker save domitoto/nodeapp-prod:latest | gzip > nodeapp-prod-golden.tar.gz
-                        }
-                    }
-
-            }
-            post {
-                failure {
-                    docker stop nodeapp-dev test-image
-                    docker system prune -f
-                    deleteDir()
-                }
-            }
-    }
-// JUnit reports and artifacts saving
-    stage('REPORTS') {
-      steps {
-        junit 'reports.xml'
-        archiveArtifacts(artifacts: 'reports.xml', allowEmptyArchive: true)
-        archiveArtifacts(artifacts: 'nodeapp-prod-golden.tar.gz', allowEmptyArchive: true)
-      }
-    }
-// Doing containers clean-up to avoid conflicts in future builds
-    stage('CLEAN-UP') {
-      steps {
-        docker stop nodeapp-dev test-image
-        docker system prune -f
-        deleteDir()
-      }
-    }
-  }
-}
