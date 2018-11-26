@@ -10,7 +10,7 @@ pipeline {
         stage('Express Image') {
           steps {
             sh 'docker build -f express-image/Dockerfile \
-            -t nodeapp-dev:master .'
+            -t nodeapp-dev:trunk .'
           }
         }
         stage('Test-Unit Image') {
@@ -32,7 +32,7 @@ pipeline {
         stage('Mocha Tests') {
           steps {
             sh 'docker run --name nodeapp-dev --network="bridge" -d \
-            -p 9000:9000 nodeapp-dev:master'
+            -p 9000:9000 nodeapp-dev:trunk'
             sh 'docker run --name test-image -v $PWD:/JUnit --network="bridge" \
             --link=nodeapp-dev -d -p 9001:9000 \
             test-image:latest'
@@ -40,8 +40,8 @@ pipeline {
         }
         stage('Quality Tests') {
           steps {
-            sh 'docker login --username $DOCKER_USR --password $DOCKER-PSW'
-            sh 'docker tag nodeapp-dev:master domitoto/nodeapp-dev:latest'
+            sh 'docker login --username $DOCKER_USR --password $DOCKER_PSW'
+            sh 'docker tag nodeapp-dev:trunk domitoto/nodeapp-dev:latest'
             sh 'docker push domitoto/nodeapp-dev:latest'
           }
         }
@@ -66,7 +66,7 @@ pipeline {
             steps {
                     retry(3) {
                         timeout(time:10, unit: 'MINUTES') {
-                            sh 'docker tag nodeapp-dev:master domitoto/nodeapp-prod:latest'
+                            sh 'docker tag nodeapp-dev:trunk domitoto/nodeapp-prod:latest'
                             sh 'docker push domitoto/nodeapp-prod:latest'
                             sh 'docker save domitoto/nodeapp-prod:latest | gzip > nodeapp-prod-golden.tar.gz'
                         }
