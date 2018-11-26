@@ -1,6 +1,6 @@
 pipeline {
     environment {
-      DOCKER = credentials('docker-hub')
+      DOCKER = credentials(docker-hub)
     }
   agent any
   stages {
@@ -38,15 +38,9 @@ pipeline {
             test-image:latest'
           }
         }
-        stage('Quality Tests') {
-          steps {
-            sh 'docker login --username $DOCKER_USR --password $DOCKER_PSW'
-            sh 'docker tag nodeapp-dev:trunk domitoto/nodeapp-dev:latest'
-            sh 'docker push domitoto/nodeapp-dev:latest'
-          }
-        }
       }
-      post {
+      
+     post {
         success {
             echo 'Build succeeded.'
         }
